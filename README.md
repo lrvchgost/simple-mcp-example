@@ -144,20 +144,42 @@ MCP сервер подключается через скачивание пак
 }
 ```
 
-### Пример конфигурации в opencode v1  
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "mcp": {
-    "my-simple-notes": {
-      "type": "local",
-      "command": ["node", "./build/index.js"],
-      "cwd": ".",
-      "enabled": true
-    }
-  }
-}
-```
+### Пошаговое подключение в opencode
+
+1. Соберите сервер:
+   ```bash
+   npm install
+   npm run build
+   ```
+   После сборки готовый к запуску файл — `build/index.js`.
+
+2. Создайте (или откройте) файл конфигурации opencode — `opencode.json` в корне проекта (либо глобально в `~/.config/opencode/opencode.json`).
+
+3. Добавьте сервер в секцию `mcp`:
+   ```json
+   {
+     "$schema": "https://opencode.ai/config.json",
+     "mcp": {
+       "my-simple-notes": {
+         "type": "local",
+         "command": ["node", "./path-to-your-package-instalation/build/index.js"],
+         "cwd": ".",
+         "enabled": true
+       }
+     }
+   }
+   ```
+   Параметры:
+   - `type` — `"local"`, сервер запускается локально через `stdio`.
+   - `command` — команда и аргументы запуска (`node build/index.js`).
+   - `cwd` — рабочая папка сервера; относительно неё создаётся папка `notes` с заметками.
+   - `enabled` — `true`, чтобы сервер был включён при старте.
+
+4. Перезапустите opencode. Инструменты сервера станут доступны с префиксом имени сервера: `my-simple-notes_add_note`, `my-simple-notes_get_all_notes`, `my-simple-notes_view_note_content`, `my-simple-notes_search_notes`, `my-simple-notes_search_in_files`.
+
+5. Проверьте подключение — например, попросите в чате: «выведи список всех заметок».
+
+Сервер можно отключить, не удаляя из конфигурации, поставив `"enabled": false`.
 
 ## Запуск для разработки
 ```bash
