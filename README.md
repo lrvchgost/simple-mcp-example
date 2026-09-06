@@ -21,6 +21,69 @@ MCP-сервер для работы с заметками. Позволяет �
 
 Все пути к файлам защищены от path traversal (`../`, абсолютные пути).
 
+## Структура кода
+
+Сервер поднимается и инструменты регистрируются в файле `src/index.ts:10–28`:
+- создание экземпляра `McpServer` и инициализация логгера;
+- регистрация всех тулов (`add_note`, `get_all_notes`, `view_note_content`, `search_notes`, `search_in_files`);
+- запуск транспорта `stdio` в функции `main()`.
+
+Реализация каждого тула лежит в отдельной папке `src/tools/<name>/index.ts`.
+
+### Логирование (debug)
+
+Логи во все тулы добавляются через логгер из `src/lib/logger.ts:17–25` (`createMcpLogger`, вызывает `server.sendLoggingMessage`). В логах MCP-клиента записи отображаются как `message="MCP server log"`.
+
+#### `add_note`
+- Файл и реализация: `src/tools/add_note/index.ts` (обработчик `addNoteHandler` — строки 13–19; регистрация — 21–39).
+- Логирование: строки 29 (`add_note: start`), 32 (`add_note: success`), 35 (`add_note: error`).
+- Пример вывода:
+  ```
+  ... level=INFO ... message="MCP server log" ... data.message="add_note: start" data.note_name=встреча
+  ```
+
+#### `get_all_notes`
+- Файл и реализация: `src/tools/get_all_notes/index.ts` (обработчик `getAllNotesHandler` — строки 5–12; регистрация — 14–32).
+- Логирование: строки 22 (`get_all_notes: start`), 25 (`get_all_notes: success`), 28 (`get_all_notes: error`).
+- Пример вывода:
+  ```
+  ... level=INFO ... message="MCP server log" ... data.message="get_all_notes: start"
+  ```
+
+#### `view_note_content`
+- Файл и реализация: `src/tools/view_note_content/index.ts` (обработчик `viewNoteContentHandler` — строки 12–18; регистрация — 20–38).
+- Логирование: строки 28 (`view_note_content: start`), 31 (`view_note_content: success`), 34 (`view_note_content: error`).
+- Пример вывода:
+  ```
+  ... level=INFO ... message="MCP server log" ... data.message="view_note_content: start" data.note_name=встреча
+  ```
+
+#### `search_notes`
+- Файл и реализация: `src/tools/search_notes/index.ts` (обработчик `searchNotesHandler` — строки 12–20; регистрация — 22–40).
+- Логирование: строки 30 (`search_notes: start`), 33 (`search_notes: success`), 36 (`search_notes: error`).
+- Пример вывода:
+  ```
+  ... level=INFO ... message="MCP server log" ... data.message="search_notes: start" data.pattern=встре
+  ```
+
+#### `search_in_files`
+- Файл и реализация: `src/tools/search_in_files/index.ts` (обработчик `searchInFilesHandler` — строки 63–86; регистрация — 88–107).
+- Логирование: строки 97 (`search_in_files: start`), 100 (`search_in_files: success`), 103 (`search_in_files: error`).
+- Пример вывода:
+  ```
+  timestamp=2026-09-06T12:56:31.417Z level=INFO run=a5cd661a message="MCP server log" server=my-simple-notes level=info data.message="search_in_files: start" data.pattern=хлеб
+  ```
+
+## Контракт результата
+
+Формат вывода каждого тула зафиксирован в этом же `README.md` в разделе «## Тулы», в блоке «Пример результата»:
+
+- Формат файла заметки (структура `.md`) — раздел «## Описание сервера» → «Структура заметки» (`README.md:9–16`).
+- Формат вывода `view_note_content` — раздел «## Тулы» → «### view_note_content» → «Пример результата» (`README.md:128–134`).
+- Формат вывода `search_in_files` — раздел «## Тулы» → «### search_in_files» → «Пример результата» (`README.md:164–171`).
+
+Строгие требования к формату (без сокращений и перефразирования) дополнительно зафиксированы в `AGENTS.md`.
+
 ## Тулы
 Тулами являются вспомогательные функции для управления заметками
 
