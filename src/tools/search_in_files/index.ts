@@ -17,6 +17,25 @@ function extractHeader(content: string): { author: string; date: string } {
   return { author, date };
 }
 
+function boldPattern(line: string, pattern: string): string {
+  if (!pattern) {
+    return line;
+  }
+  const lower = pattern.toLowerCase();
+  const lowerLine = line.toLowerCase();
+  let result = '';
+  let lastIndex = 0;
+  let index = lowerLine.indexOf(lower);
+  while (index !== -1) {
+    result += line.slice(lastIndex, index);
+    result += `**${line.slice(index, index + pattern.length)}**`;
+    lastIndex = index + pattern.length;
+    index = lowerLine.indexOf(lower, lastIndex);
+  }
+  result += line.slice(lastIndex);
+  return result;
+}
+
 function searchLines(lines: string[], pattern: string, context = 2): string[] {
   const lower = pattern.toLowerCase();
   const matched: number[] = [];
@@ -28,13 +47,16 @@ function searchLines(lines: string[], pattern: string, context = 2): string[] {
   if (matched.length === 0) {
     return [];
   }
+  const matchedSet = new Set(matched);
   const indices = new Set<number>();
   for (const i of matched) {
     for (let j = Math.max(0, i - context); j <= Math.min(lines.length - 1, i + context); j++) {
       indices.add(j);
     }
   }
-  return [...indices].sort((a, b) => a - b).map((i) => lines[i]);
+  return [...indices].sort((a, b) => a - b).map((i) =>
+    matchedSet.has(i) ? boldPattern(lines[i], pattern) : lines[i],
+  );
 }
 
 export async function searchInFilesHandler(
@@ -48,16 +70,14 @@ export async function searchInFilesHandler(
   for (const fileName of files) {
     const filePath = path.join(notesDir, fileName);
     const content = await readFile(filePath, 'utf8');
-    const lines = content.split('\n');
-    const contextLines = searchLines(lines, args.pattern);
+    const { author, date } = extractHeader(content);
+    const bodyLines = content.split('\n').slice(3);
+    const contextLines = searchLines(bodyLines, args.pattern);
     if (contextLines.length === 0) {
       continue;
     }
-    const { author, date } = extractHeader(content);
     blocks.push(
-      [fileName, `Автор: ${author}`, `Дата: ${date}`, contextLines.join('\n')]
-        .filter(Boolean)
-        .join('\n'),
+      [`Файл: ${fileName}`, `Автор: ${author}`, `Дата: ${date}`, '', contextLines.join('\n')].join('\n'),
     );
   }
 
@@ -69,7 +89,7 @@ export function registerSearchInFiles(server: McpServer): void {
     'search_in_files',
     {
       description:
-        'Возвращает список файлов, в содержимом которых есть искомый паттерн (регистронезависимо), с автором, датой и найденной строкой ±2 строки контекста.',
+        'Возвращает список файлов, в содержимом которых есть искомый паттерн (регистронезависимо), и для каждого файла автор, дату и найденную строку ±2 строки контекста, паттерн обернут в bold.',
       inputSchema: searchInFilesSchema,
     },
     async (args) => searchInFilesHandler(args),
