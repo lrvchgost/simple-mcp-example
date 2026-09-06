@@ -1,0 +1,77 @@
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { z } from 'zod';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { getNotesDir, listNoteFiles } from '../../lib/notes.js';
+
+const searchInFilesSchema = {
+  pattern: z.string().describe('паттерн для поиска в содержимом файлов'),
+};
+
+export type SearchInFilesArgs = { pattern: string };
+
+function extractHeader(content: string): { author: string; date: string } {
+  const lines = content.split('\n');
+  const author = (lines[0] ?? '').replace(/^Автор:\s*/, '');
+  const date = (lines[1] ?? '').replace(/^Дата:\s*/, '');
+  return { author, date };
+}
+
+function searchLines(lines: string[], pattern: string, context = 2): string[] {
+  const lower = pattern.toLowerCase();
+  const matched: number[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].toLowerCase().includes(lower)) {
+      matched.push(i);
+    }
+  }
+  if (matched.length === 0) {
+    return [];
+  }
+  const indices = new Set<number>();
+  for (const i of matched) {
+    for (let j = Math.max(0, i - context); j <= Math.min(lines.length - 1, i + context); j++) {
+      indices.add(j);
+    }
+  }
+  return [...indices].sort((a, b) => a - b).map((i) => lines[i]);
+}
+
+export async function searchInFilesHandler(
+  args: SearchInFilesArgs,
+  baseDir: string = process.cwd(),
+): Promise<{ content: { type: 'text'; text: string }[] }> {
+  const files = await listNoteFiles(baseDir);
+  const notesDir = getNotesDir(baseDir);
+  const blocks: string[] = [];
+
+  for (const fileName of files) {
+    const filePath = path.join(notesDir, fileName);
+    const content = await readFile(filePath, 'utf8');
+    const lines = content.split('\n');
+    const contextLines = searchLines(lines, args.pattern);
+    if (contextLines.length === 0) {
+      continue;
+    }
+    const { author, date } = extractHeader(content);
+    blocks.push(
+      [fileName, `Автор: ${author}`, `Дата: ${date}`, contextLines.join('\n')]
+        .filter(Boolean)
+        .join('\n'),
+    );
+  }
+
+  return { content: [{ type: 'text', text: blocks.join('\n\n') }] };
+}
+
+export function registerSearchInFiles(server: McpServer): void {
+  server.registerTool(
+    'search_in_files',
+    {
+      description:
+        'Возвращает список файлов, в содержимом которых есть искомый паттерн (регистронезависимо), с автором, датой и найденной строкой ±2 строки контекста.',
+      inputSchema: searchInFilesSchema,
+    },
+    async (args) => searchInFilesHandler(args),
+  );
+}
