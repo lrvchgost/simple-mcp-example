@@ -64,6 +64,10 @@ export async function searchInFilesHandler(
   args: SearchInFilesArgs,
   baseDir: string = process.cwd(),
 ): Promise<{ content: { type: 'text'; text: string }[] }> {
+  const pattern = args.pattern.trim();
+  if (!pattern) {
+    throw new Error('pattern must not be empty');
+  }
   const files = await listNoteFiles(baseDir);
   const notesDir = getNotesDir(baseDir);
   const blocks: string[] = [];
@@ -73,7 +77,7 @@ export async function searchInFilesHandler(
     const content = await readFile(filePath, 'utf8');
     const { author, date } = extractHeader(content);
     const bodyLines = content.split('\n').slice(3);
-    const contextLines = searchLines(bodyLines, args.pattern);
+    const contextLines = searchLines(bodyLines, pattern);
     if (contextLines.length === 0) {
       continue;
     }

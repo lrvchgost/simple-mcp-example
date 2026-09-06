@@ -41,13 +41,10 @@ function normalizeNoteName(noteName: string): string {
   if (trimmed.includes('/') || trimmed.includes('\\')) {
     throw new Error('note_name must not contain path separators');
   }
-  const withExt = trimmed.toLowerCase().endsWith(NOTE_EXTENSION)
-    ? trimmed
-    : `${trimmed}${NOTE_EXTENSION}`;
-  if (!withExt.toLowerCase().endsWith(NOTE_EXTENSION)) {
-    throw new Error(`only ${NOTE_EXTENSION} files are allowed`);
-  }
-  return withExt;
+  const base = trimmed.toLowerCase().endsWith(NOTE_EXTENSION)
+    ? trimmed.slice(0, -NOTE_EXTENSION.length)
+    : trimmed;
+  return `${base}${NOTE_EXTENSION}`;
 }
 
 export function resolveNotePath(noteName: string, baseDir: string = process.cwd()): string {
@@ -78,7 +75,7 @@ export async function writeNote(
 }
 
 export async function listNoteFiles(baseDir: string = process.cwd()): Promise<string[]> {
-  const notesDir = getNotesDir(baseDir);
+  const notesDir = await ensureNotesDir(baseDir);
   const entries = await readdir(notesDir, { withFileTypes: true });
   return entries
     .filter((entry) => entry.isFile() && entry.name.toLowerCase().endsWith(NOTE_EXTENSION))
