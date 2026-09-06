@@ -1,0 +1,11 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "my-simple-notes": {
+      "type": "local",
+      "command": ["node", "./build/index.js"],
+      "cwd": ".",
+      "enabled": true
+    }
+  }
+}

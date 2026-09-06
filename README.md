@@ -135,7 +135,7 @@ MCP сервер подключается через скачивание пак
 ```json
 {
   "mcpServers": {
-    "notes": {
+    "my-simple-notes": {
       "command": "node",
       "args": ["/absolute/path/to/simple-mcp-example/build/index.js"]
     }
@@ -143,8 +143,22 @@ MCP сервер подключается через скачивание пак
 }
 ```
 
-## Запуск для разработки
+### Пример конфигурации в opencode v1  
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "my-simple-notes": {
+      "type": "local",
+      "command": ["node", "./build/index.js"],
+      "cwd": ".",
+      "enabled": true
+    }
+  }
+}
+```
 
+## Запуск для разработки
 ```bash
 npm install        # установка зависимостей
 npm run build      # сборка
