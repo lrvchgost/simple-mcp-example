@@ -3,6 +3,7 @@ import path from 'node:path';
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { getNotesDir, listNoteFiles } from '../../lib/notes.js';
+import type { McpLogger } from '../../lib/logger.js';
 
 const searchInFilesSchema = {
   pattern: z.string().describe('паттерн для поиска в содержимом файлов'),
@@ -84,7 +85,7 @@ export async function searchInFilesHandler(
   return { content: [{ type: 'text', text: blocks.join('\n\n') }] };
 }
 
-export function registerSearchInFiles(server: McpServer): void {
+export function registerSearchInFiles(server: McpServer, logger: McpLogger): void {
   server.registerTool(
     'search_in_files',
     {
@@ -92,6 +93,16 @@ export function registerSearchInFiles(server: McpServer): void {
         'Возвращает список файлов, в содержимом которых есть искомый паттерн (регистронезависимо), и для каждого файла автор, дату и найденную строку ±2 строки контекста, паттерн обернут в bold.',
       inputSchema: searchInFilesSchema,
     },
-    async (args) => searchInFilesHandler(args),
+    async (args) => {
+      await logger.log('info', 'search_in_files: start', { pattern: args.pattern });
+      try {
+        const result = await searchInFilesHandler(args);
+        await logger.log('info', 'search_in_files: success', { pattern: args.pattern });
+        return result;
+      } catch (error) {
+        await logger.log('error', 'search_in_files: error', { error: String(error) });
+        throw error;
+      }
+    },
   );
 }

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { writeNote } from '../../lib/notes.js';
+import type { McpLogger } from '../../lib/logger.js';
 
 const addNoteSchema = {
   note_name: z.string().describe('имя файла в который будет сохранена заметка, расширение .md добавляется к имени файла'),
@@ -17,13 +18,23 @@ export async function addNoteHandler(
   return { content: [{ type: 'text', text: `Заметка сохранена: ${fileName}` }] };
 }
 
-export function registerAddNote(server: McpServer): void {
+export function registerAddNote(server: McpServer, logger: McpLogger): void {
   server.registerTool(
     'add_note',
     {
       description: 'Создаёт новую заметку (или перезаписывает существующую) в папке notes.',
       inputSchema: addNoteSchema,
     },
-    async (args) => addNoteHandler(args),
+    async (args) => {
+      await logger.log('info', 'add_note: start', { note_name: args.note_name });
+      try {
+        const result = await addNoteHandler(args);
+        await logger.log('info', 'add_note: success', { note_name: args.note_name });
+        return result;
+      } catch (error) {
+        await logger.log('error', 'add_note: error', { error: String(error) });
+        throw error;
+      }
+    },
   );
 }

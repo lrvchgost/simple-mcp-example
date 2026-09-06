@@ -5,17 +5,23 @@ import { registerGetAllNotes } from './tools/get_all_notes/index.js';
 import { registerViewNoteContent } from './tools/view_note_content/index.js';
 import { registerSearchNotes } from './tools/search_notes/index.js';
 import { registerSearchInFiles } from './tools/search_in_files/index.js';
+import { createMcpLogger } from './lib/logger.js';
 
-const server = new McpServer({
-  name: 'simple-mcp-example',
-  version: '1.0.0',
-});
+const server = new McpServer(
+  {
+    name: 'simple-mcp-example',
+    version: '1.0.0',
+  },
+  { capabilities: { logging: {} } },
+);
 
-registerAddNote(server);
-registerGetAllNotes(server);
-registerViewNoteContent(server);
-registerSearchNotes(server);
-registerSearchInFiles(server);
+const logger = createMcpLogger(server);
+
+registerAddNote(server, logger);
+registerGetAllNotes(server, logger);
+registerViewNoteContent(server, logger);
+registerSearchNotes(server, logger);
+registerSearchInFiles(server, logger);
 
 async function main(): Promise<void> {
   const transport = new StdioServerTransport();
